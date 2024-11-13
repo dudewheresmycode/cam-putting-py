@@ -73,34 +73,41 @@ https://youtu.be/ZgcH25WkCWQ
 
 ## Available Color Options and HSV values used
 
-#red
+### `red`
 
+```python
 red = {'hmin': 1, 'smin': 208, 'vmin': 0, 'hmax': 50, 'smax': 255, 'vmax': 249} # bright environment 
 
 red2 = {'hmin': 1, 'smin': 240, 'vmin': 61, 'hmax': 50, 'smax': 255, 'vmax': 249} # dark environment
+```
 
-#white 
+### `white `
 
+```python
 white = {'hmin': 168, 'smin': 218, 'vmin': 118, 'hmax': 179, 'smax': 247, 'vmax': 216} # very bright environment
 
 white2 = {'hmin': 159, 'smin': 217, 'vmin': 152, 'hmax': 179, 'smax': 255, 'vmax': 255} # bright environment 
 
 white3 = {'hmin': 0, 'smin': 181, 'vmin': 0, 'hmax': 42, 'smax': 255, 'vmax': 255}# test environment
+```
 
-#yellow 
+### `yellow `
 
+```python
 yellow = {'hmin': 0, 'smin': 210, 'vmin': 0, 'hmax': 15, 'smax': 255, 'vmax': 255} # bright environment 
 
 yellow2 = {'hmin': 0, 'smin': 150, 'vmin': 100, 'hmax': 46, 'smax': 255, 'vmax': 206} # dark environment
+```
 
-#green 
-
+### `green `
+```python
 green = {'hmin': 0, 'smin': 169, 'vmin': 161, 'hmax': 177, 'smax': 204, 'vmax': 255} # bright environment 
 
 green2 = {'hmin': 0, 'smin': 109, 'vmin': 74, 'hmax': 81, 'smax': 193, 'vmax': 117} # dark environment
+```
+### `orange `
 
-#orange 
-
+```python
 orange = {'hmin': 0, 'smin': 219, 'vmin': 147, 'hmax': 19, 'smax': 255, 'vmax': 255}# bright environment 
 
 orange2 = {'hmin': 3, 'smin': 181, 'vmin': 134, 'hmax': 40, 'smax': 255, 'vmax': 255}# dark environment
@@ -108,31 +115,41 @@ orange2 = {'hmin': 3, 'smin': 181, 'vmin': 134, 'hmax': 40, 'smax': 255, 'vmax':
 orange3 = {'hmin': 0, 'smin': 73, 'vmin': 150, 'hmax': 40, 'smax': 255, 'vmax': 255}# test environment
 
 orange4 = {'hmin': 3, 'smin': 181, 'vmin': 216, 'hmax': 40, 'smax': 255, 'vmax': 255}# custom ps3eye environment
-  
+```
+
 ## Details on the python app
 
 You can install the necessary packages by running pip install with the requirements file - some mentioned packages might not be necessary to run it as I did not clean it up yet
 
 Install the app:
 
-"pip install -r requirements.txt"
+```bash
+pip install -r requirements.txt
+```
 
 Run the app:
 
-"python ball_tracking.py"
+```bash
+python ball_tracking.py
+```
 
 Default color to be found is yellow - You can adapt this by running -c as color options yellow, green, orange, red or white. White is a very general option if no color ball is availabe but might give you more false reads on other white objects. Best options for me are orange, yellow and red.
 
-"python ball_tracking.py -c orange"
+```bash
+python ball_tracking.py -c orange
+```
 
 In the app you can hit "a" for advanced settings to define the ball detection area, flip and darken image or hit "d" to get a debug view of the video feed to see the color detection mask.
 
 There are also other options to for start to pass a video file or image file
 
-usage: ball_tracking.py [-h] [-v VIDEO] [-i IMG] [-b BUFFER] [-w CAMERA] [-c BALLCOLOR] [-d DEBUG]
+usage: 
+```
+ball_tracking.py [-h] [-v VIDEO] [-i IMG] [-b BUFFER] [-w CAMERA] [-c BALLCOLOR] [-d DEBUG]
+```
 
 options:
-
+```
   -h, --help                  show this help message and exit
 
   -v VIDEO, --video VIDEO     path to the (optional) video file
@@ -146,7 +163,7 @@ options:
   -c BALLCOLOR, --ballcolor   ball color - default is white
 
   -d DEBUG, --debug DEBUG     debug - color finder and wait timer
-
+```
 
 ### Average Putting Distances
 
