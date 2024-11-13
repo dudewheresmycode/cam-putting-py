@@ -65,7 +65,7 @@ Software is open source. Feel Free to buy me a coffee or a sleeve of golf balls 
 
 [![ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/U6U2I70HX)
 
-<img src="Camera-Putting-Alignment.png">
+<img src="images/Camera-Putting-Alignment.png">
 
 Here is a short video demonstration of the prototype
 
@@ -148,5 +148,16 @@ options:
   -d DEBUG, --debug DEBUG     debug - color finder and wait timer
 
 
+### Average Putting Distances
 
+This table breaks down the distance traveled for various swing speeds. It can be used to calibrate the ball radius speed.
 
+| Swing Speed | Slow Green | Medium Green | Fast Green |
+| - | - | - | - |
+| 1 mph | 0 - 2 ft | 0 - 3 ft |  0 - 5 ft |
+| 2 mph |  2 - 7 ft |  3 - 8 ft | 5 - 12 ft |
+| 3 mph |  8 - 12 ft |  9 - 16 ft | 13- 26 ft |
+| 4 mph |  13 - 18 ft | 17 - 27 ft | 27 - 39 ft | 
+| 5 mph | 19 - 30 ft | 28 - 41 ft | 40 - 62 ft |
+| 6 mph | 31 - 42 ft | 42 - 57 ft | 63 - 77 ft |
+| 7 mph | 43 ft + | 58 ft + | 78 ft+ |

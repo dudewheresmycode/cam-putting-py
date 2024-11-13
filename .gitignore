@@ -2,6 +2,6 @@
 *.mov
 *.mp4
 *.mkv
-dist/
+dist
 readme-priv.md
 .vscode

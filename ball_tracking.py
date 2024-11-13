@@ -319,8 +319,8 @@ def resizeWithAspectRatio(image, width=None, height=None, inter=cv2.INTER_AREA):
 
 # Start Splash Screen
 
-frame = cv2.imread("error.png")
-origframe2 = cv2.imread("error.png")
+frame = cv2.imread("images/error.png")
+origframe2 = cv2.imread("images/error.png")
 cv2.putText(frame,"Starting Video: Try MJPEG option in advanced settings for faster startup",(20,100),cv2.FONT_HERSHEY_SIMPLEX,0.5,(0, 0, 255))
 outputframe = resizeWithAspectRatio(frame, width=int(args["resize"]))
 cv2.imshow("Putting View: Press q to exit / a for adv. settings", outputframe)
