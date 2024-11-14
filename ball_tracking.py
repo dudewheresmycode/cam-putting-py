@@ -7,19 +7,21 @@ import imutils
 import time
 import sys
 import cvzone
-from ColorModuleExtended import ColorFinder
 import math
 from decimal import *
 import requests
-from configparser import ConfigParser
 import ast
 import os
 import shutil
+import threading
 
-parser = ConfigParser()
+from lib.BallColors import *
+from lib.Camera import *
+from lib.ColorModuleExtended import ColorFinder
+from lib.Config import *
+from lib.Utils import *
+
 CFG_FILE = 'config.ini'
-
-parser.read(CFG_FILE)
 
 ## Check for folder replay1 and replay2 and empty if necessary
 
@@ -44,8 +46,6 @@ else:
     os.mkdir('replay2')
 
 
-# Startpoint Zone
-
 ballradius = 0
 darkness = 0
 flipImage = 0
@@ -64,81 +64,35 @@ noOfStarts = 0
 replayavail = False
 frameskip = 0
 
+# parse CLI arguments
+args = ParseArguments()
 
+configFile = CFG_FILE
+if args.get("config", False):
+    configFile = args["config"]
 
-if parser.has_option('putting', 'startx1'):
-    sx1=int(parser.get('putting', 'startx1'))
-else:
-    sx1=10
-if parser.has_option('putting', 'startx2'):
-    sx2=int(parser.get('putting', 'startx2'))
-else:
-    sx2=180
-if parser.has_option('putting', 'y1'):
-    y1=int(parser.get('putting', 'y1'))
-else:
-    y1=180
-if parser.has_option('putting', 'y2'):
-    y2=int(parser.get('putting', 'y2'))
-else:
-    y2=450
-if parser.has_option('putting', 'radius'):
-    ballradius=int(parser.get('putting', 'radius'))
-else:
-    ballradius=0
-if parser.has_option('putting', 'flip'):
-    flipImage=int(parser.get('putting', 'flip'))
-else:
-    flipImage=0
-if parser.has_option('putting', 'flipview'):
-    flipView=int(parser.get('putting', 'flipview'))
-else:
-    flipView=0
-if parser.has_option('putting', 'darkness'):
-    darkness=int(parser.get('putting', 'darkness'))
-else:
-    darkness=0
-if parser.has_option('putting', 'mjpeg'):
-    mjpegenabled=int(parser.get('putting', 'mjpeg'))
-else:
-    mjpegenabled=0
-if parser.has_option('putting', 'ps4'):
-    ps4=int(parser.get('putting', 'ps4'))
-else:
-    ps4=0
-if parser.has_option('putting', 'fps'):
-    overwriteFPS=int(parser.get('putting', 'fps'))
-else:
-    overwriteFPS=0
-if parser.has_option('putting', 'height'):
-    height=int(parser.get('putting', 'height'))
-else:
-    height=360
-if parser.has_option('putting', 'width'):
-    width=int(parser.get('putting', 'width'))
-else:
-    width=640
-if parser.has_option('putting', 'customhsv'):
-    customhsv=ast.literal_eval(parser.get('putting', 'customhsv'))
-    print(customhsv)
-else:
-    customhsv={}
-if parser.has_option('putting', 'showreplay'):
-    showreplay=int(parser.get('putting', 'showreplay'))
-else:
-    showreplay=0
-if parser.has_option('putting', 'replaycam'):
-    replaycam=int(parser.get('putting', 'replaycam'))
-else:
-    replaycam=0
-if parser.has_option('putting', 'replaycamindex'):
-    replaycamindex=int(parser.get('putting', 'replaycamindex'))
-else:
-    replaycamindex=0
-if parser.has_option('putting', 'replaycamps4'):
-    replaycamps4=int(parser.get('putting', 'replaycamps4'))
-else:
-    replaycamps4=0
+(
+    sx1,
+    sx2,
+    y1,
+    y2,
+    ballradius,
+    flipImage,
+    flipView,
+    darkness,
+    mjpegenabled,
+    ps4,
+    overwriteFPS,
+    height,
+    width,
+    customhsv,
+    showreplay,
+    replaycam,
+    replaycamindex,
+    replaycamps4,
+    parser
+) = ParseConfigFile(configFile)
+
 
 # Globals
 
@@ -203,529 +157,247 @@ record = True
 # Videofile Indicator
 
 videofile = False
+# video source
+vs = None
 
 # remove duplicate advanced screens for multipla 'a' and 'd' key presses)
 a_key_pressed = False 
 d_key_pressed = False 
 
 
-# construct the argument parse and parse the arguments
-ap = argparse.ArgumentParser()
-ap.add_argument("-v", "--video",
-                help="path to the (optional) video file")
-ap.add_argument("-i", "--img",
-                help="path to the (optional) image file")
-ap.add_argument("-b", "--buffer", type=int, default=64,
-                help="max buffer size - default is 64")
-ap.add_argument("-w", "--camera", type=int, default=0,
-                help="webcam index number - default is 0")
-ap.add_argument("-c", "--ballcolor",
-                help="ball color - default is yellow")
-ap.add_argument("-d", "--debug",
-                help="debug - color finder and wait timer")
-ap.add_argument("-r", "--resize", type=int, default=640,
-                help="window resize in width pixel - default is 640px")
-args = vars(ap.parse_args())
-
 # define the lower and upper boundaries of the different ball color options (-c)
 # ball in the HSV color space, then initialize the
-
-#red                   
-red = {'hmin': 1, 'smin': 208, 'vmin': 0, 'hmax': 50, 'smax': 255, 'vmax': 249} # light
-red2 = {'hmin': 1, 'smin': 240, 'vmin': 61, 'hmax': 50, 'smax': 255, 'vmax': 249} # dark
-
-#white
-white = {'hmin': 168, 'smin': 218, 'vmin': 118, 'hmax': 179, 'smax': 247, 'vmax': 216} # very light
-white2 = {'hmin': 159, 'smin': 217, 'vmin': 152, 'hmax': 179, 'smax': 255, 'vmax': 255} # light
-white3 = {'hmin': 0, 'smin': 181, 'vmin': 0, 'hmax': 42, 'smax': 255, 'vmax': 255}
-
-#yellow
-
-yellow = {'hmin': 0, 'smin': 210, 'vmin': 0, 'hmax': 15, 'smax': 255, 'vmax': 255} # light
-yellow2 = {'hmin': 0, 'smin': 150, 'vmin': 100, 'hmax': 46, 'smax': 255, 'vmax': 206} # dark
-
-#green
-green = {'hmin': 0, 'smin': 169, 'vmin': 161, 'hmax': 177, 'smax': 204, 'vmax': 255} # light
-green2 = {'hmin': 0, 'smin': 109, 'vmin': 74, 'hmax': 81, 'smax': 193, 'vmax': 117} # dark
-
-#orange
-orange = {'hmin': 0, 'smin': 219, 'vmin': 147, 'hmax': 19, 'smax': 255, 'vmax': 255}# light
-orange2 = {'hmin': 3, 'smin': 181, 'vmin': 134, 'hmax': 40, 'smax': 255, 'vmax': 255}# dark
-orange3 = {'hmin': 0, 'smin': 73, 'vmin': 150, 'hmax': 40, 'smax': 255, 'vmax': 255}# test
-orange4 = {'hmin': 3, 'smin': 181, 'vmin': 216, 'hmax': 40, 'smax': 255, 'vmax': 255}# ps3eye
 
 calibrate = {}
 
 # for Colorpicker
-# default yellow option
-hsvVals = yellow
-
-if customhsv == {}:
-
-    if args.get("ballcolor", False):
-        if args["ballcolor"] == "white":
-            hsvVals = white
-        elif args["ballcolor"] == "white2":
-            hsvVals = white2
-        elif args["ballcolor"] ==  "yellow":
-            hsvVals = yellow 
-        elif args["ballcolor"] ==  "yellow2":
-            hsvVals = yellow2 
-        elif args["ballcolor"] ==  "orange":
-            hsvVals = orange
-        elif args["ballcolor"] ==  "orange2":
-            hsvVals = orange2
-        elif args["ballcolor"] ==  "orange3":
-            hsvVals = orange3
-        elif args["ballcolor"] ==  "orange4":
-            hsvVals = orange4
-        elif args["ballcolor"] ==  "green":
-            hsvVals = green 
-        elif args["ballcolor"] ==  "green2":
-            hsvVals = green2               
-        elif args["ballcolor"] ==  "red":
-            hsvVals = red             
-        elif args["ballcolor"] ==  "red2":
-            hsvVals = red2             
-        else:
-            hsvVals = yellow
-
-        if args["ballcolor"] is not None:
-            print("Ballcolor: "+str(args["ballcolor"]))
-else:
-    hsvVals = customhsv
-    print("Custom HSV Values set in config.ini")
-
-
-
-
-calibrationcolor = [("white",white),("white2",white2),("yellow",yellow),("yellow2",yellow2),("orange",orange),("orange2",orange2),("orange3",orange3),("orange4",orange4),("green",green),("green2",green2),("red",red),("red2",red2)]
-
-def resizeWithAspectRatio(image, width=None, height=None, inter=cv2.INTER_AREA):
-    dim = None
-    (h, w) = image.shape[:2]
-
-    if width is None and height is None:
-        return image
-    if width is None:
-        r = height / float(h)
-        dim = (int(w * r), height)
-    else:
-        r = width / float(w)
-        dim = (width, int(h * r))
-
-    return cv2.resize(image, dim, interpolation=inter)
-
-
-
-def resource_path(relative_path):
-    """ Get absolute path to resource, works for dev and for PyInstaller """
-    try:
-        # PyInstaller creates a temp folder and stores path in _MEIPASS
-        base_path = sys._MEIPASS
-    except Exception:
-        base_path = os.path.abspath(".")
-
-    return os.path.join(base_path, relative_path)
-
-# Start Splash Screen
-
-frame = cv2.imread(resource_path("images/error.png"))
-origframe2 = cv2.imread(resource_path("images/error.png"))
-cv2.putText(frame,"Starting Video: Try MJPEG option in advanced settings for faster startup",(20,100),cv2.FONT_HERSHEY_SIMPLEX,0.5,(0, 0, 255))
-outputframe = resizeWithAspectRatio(frame, width=int(args["resize"]))
-cv2.imshow("Putting View: Press q to exit / a for adv. settings", outputframe)
-
-# Create the color Finder object set to True if you need to Find the color
-
-if args.get("debug", False):
-    myColorFinder = ColorFinder(True)
-    myColorFinder.setTrackbarValues(hsvVals)
-else:
-    myColorFinder = ColorFinder(False)
+hsvVals = GetHLSVals(args, customhsv)
 
 pts = deque(maxlen=args["buffer"])
 tims = deque(maxlen=args["buffer"])
 fpsqueue = deque(maxlen=240)
 replay1queue = deque(maxlen=600)
 replay2queue = deque(maxlen=600)
-
 webcamindex = 0
 
+windowName = "Putting View - Press q to exit / a for adv. settings"
 message = ""
+previousFrame = cv2.Mat
 
+# # Create the color Finder object set to True if you need to Find the color
+if args.get("debug", False):
+    myColorFinder = ColorFinder(True)
+    myColorFinder.setTrackbarValues(hsvVals)
+else:
+    myColorFinder = ColorFinder(False)
+
+# # Create the main window
+cv2.namedWindow(windowName, cv2.WINDOW_NORMAL)
+
+# Create a black image
+blackFrame = np.zeros((640, 480, 3), np.uint8)
+# Draw a black rectangle
+cv2.rectangle(blackFrame, (0, 0), (640, 480), (0, 0, 0), -1)
+
+outputFrame = resizeWithAspectRatio(blackFrame, width=int(args["resize"]))
+cv2.putText(blackFrame, "Starting Video: Try MJPEG option in advanced settings for faster startup", (20,100), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 255))
+
+cv2.imshow(windowName, outputFrame)
+
+if args.get("frameless", False):
+    cv2.setWindowProperty(windowName, cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN)
+    cv2.setWindowProperty(windowName, cv2.WND_PROP_TOPMOST, 1.0)
+
+(w, h) = outputFrame.shape[:2]
+cv2.resizeWindow(windowName, w, h)
+cv2.moveWindow(windowName, int(args["xpos"]), int(args["ypos"]))
+
+print('window open')
 
 # if a webcam index is supplied, grab the reference
 if args.get("camera", False):
     webcamindex = args["camera"]
     print("Putting Cam activated at "+str(webcamindex))
 
-# if a video path was not supplied, grab the reference
-# to the webcam
-if not args.get("video", False):
-    if mjpegenabled == 0:
-        vs = cv2.VideoCapture(webcamindex)
+def startVideo():
+    global vs
+    global width
+    global height
+    global videofile
+    global video_fps
+    global out2
+
+    if not args.get("video", False):
+        vs = SetupVideoSource(webcamindex, ps4, mjpegenabled, overwriteFPS, width, height)
     else:
-        vs = cv2.VideoCapture(webcamindex + cv2.CAP_DSHOW)
-        # Check if FPS is overwritten in config
-        if overwriteFPS != 0:
-            vs.set(cv2.CAP_PROP_FPS, overwriteFPS)
-            print("Overwrite FPS: "+str(vs.get(cv2.CAP_PROP_FPS)))
-        if height != 0 and width != 0:
-            vs.set(cv2.CAP_PROP_FRAME_WIDTH, width)
-            vs.set(cv2.CAP_PROP_FRAME_HEIGHT, height)
-        mjpeg = cv2.VideoWriter_fourcc('M','J','P','G')
-        vs.set(cv2.CAP_PROP_FOURCC, mjpeg)
-    if vs.get(cv2.CAP_PROP_BACKEND) == -1:
-        message = "No Camera could be opened at webcamera index "+str(webcamindex)+". If your webcam only supports compressed format MJPEG instead of YUY2 please set MJPEG option to 1"
+        vs = cv2.VideoCapture(args["video"])
+        videofile = True
+
+    # Get video metadata
+
+    video_fps = vs.get(cv2.CAP_PROP_FPS)
+    height = vs.get(cv2.CAP_PROP_FRAME_HEIGHT)
+    width = vs.get(cv2.CAP_PROP_FRAME_WIDTH)
+
+    if parser.has_option('putting', 'saturation'):
+        saturation=float(parser.get('putting', 'saturation'))
     else:
-        if ps4 == 1:
-            vs.set(cv2.CAP_PROP_FPS, 120)
-            vs.set(cv2.CAP_PROP_FRAME_WIDTH, 1724)
-            vs.set(cv2.CAP_PROP_FRAME_HEIGHT, 404)
-            #cap.set(cv2.CAP_PROP_FRAME_WIDTH, 3448)
-            #cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 808)
-        print("Backend: "+str(vs.get(cv2.CAP_PROP_BACKEND)))
-        print("FourCC: "+str(vs.get(cv2.CAP_PROP_FOURCC)))
-        print("FPS: "+str(vs.get(cv2.CAP_PROP_FPS)))
-else:
-    vs = cv2.VideoCapture(args["video"])
-    videofile = True
-
-# Get video metadata
-
-video_fps = vs.get(cv2.CAP_PROP_FPS)
-height = vs.get(cv2.CAP_PROP_FRAME_HEIGHT)
-width = vs.get(cv2.CAP_PROP_FRAME_WIDTH)
-
-if parser.has_option('putting', 'saturation'):
-    saturation=float(parser.get('putting', 'saturation'))
-else:
-    saturation = vs.get(cv2.CAP_PROP_SATURATION)
-if parser.has_option('putting', 'exposure'):
-    exposure=float(parser.get('putting', 'exposure'))
-else:
-    exposure = vs.get(cv2.CAP_PROP_EXPOSURE)
-if parser.has_option('putting', 'autowb'):
-    autowb=float(parser.get('putting', 'autowb'))
-else:
-    autowb = vs.get(cv2.CAP_PROP_AUTO_WB)
-if parser.has_option('putting', 'whiteBalanceBlue'):
-    whiteBalanceBlue=float(parser.get('putting', 'whiteBalanceBlue'))
-else:
-    whiteBalanceBlue = vs.get(cv2.CAP_PROP_WHITE_BALANCE_BLUE_U)
-if parser.has_option('putting', 'whiteBalanceRed'):
-    whiteBalanceRed=float(parser.get('putting', 'whiteBalanceRed'))
-else:
-    whiteBalanceRed = vs.get(cv2.CAP_PROP_WHITE_BALANCE_RED_V)
-if parser.has_option('putting', 'brightness'):
-    brightness=float(parser.get('putting', 'brightness'))
-else:
-    brightness = vs.get(cv2.CAP_PROP_BRIGHTNESS)
-if parser.has_option('putting', 'contrast'):
-    contrast=float(parser.get('putting', 'contrast'))
-else:
-    contrast = vs.get(cv2.CAP_PROP_CONTRAST)
-if parser.has_option('putting', 'hue'):
-    hue=float(parser.get('putting', 'hue'))
-else:
-    hue = vs.get(cv2.CAP_PROP_HUE)
-if parser.has_option('putting', 'gain'):
-    gain=float(parser.get('putting', 'gain'))
-else:
-    gain = vs.get(cv2.CAP_PROP_HUE)
-if parser.has_option('putting', 'monochrome'):
-    monochrome=float(parser.get('putting', 'monochrome'))
-else:
-    monochrome = vs.get(cv2.CAP_PROP_MONOCHROME)
-if parser.has_option('putting', 'sharpness'):
-    sharpness=float(parser.get('putting', 'sharpness'))
-else:
-    sharpness = vs.get(cv2.CAP_PROP_SHARPNESS)
-if parser.has_option('putting', 'autoexposure'):
-    autoexposure=float(parser.get('putting', 'autoexposure'))
-else:
-    autoexposure = vs.get(cv2.CAP_PROP_AUTO_EXPOSURE)
-if parser.has_option('putting', 'gamma'):
-    gamma=float(parser.get('putting', 'gamma'))
-else:
-    gamma = vs.get(cv2.CAP_PROP_GAMMA)
-if parser.has_option('putting', 'zoom'):
-    zoom=float(parser.get('putting', 'zoom'))
-else:
-    zoom = vs.get(cv2.CAP_PROP_ZOOM)
-    gamma = vs.get(cv2.CAP_PROP_GAMMA)
-if parser.has_option('putting', 'focus'):
-    focus=float(parser.get('putting', 'focus'))
-else:
-    focus = vs.get(cv2.CAP_PROP_FOCUS)
-if parser.has_option('putting', 'autofocus'):
-    autofocus=float(parser.get('putting', 'autofocus'))
-else:
-    autofocus = vs.get(cv2.CAP_PROP_AUTOFOCUS)
-
-vs.set(cv2.CAP_PROP_SATURATION,saturation)
-vs.set(cv2.CAP_PROP_EXPOSURE,exposure)
-vs.set(cv2.CAP_PROP_AUTO_WB,autowb)
-vs.set(cv2.CAP_PROP_WHITE_BALANCE_BLUE_U,whiteBalanceBlue)
-vs.set(cv2.CAP_PROP_WHITE_BALANCE_RED_V,whiteBalanceRed)
-vs.set(cv2.CAP_PROP_BRIGHTNESS,brightness)
-vs.set(cv2.CAP_PROP_CONTRAST,contrast)
-vs.set(cv2.CAP_PROP_HUE,hue)
-vs.set(cv2.CAP_PROP_GAIN,gain)
-vs.set(cv2.CAP_PROP_MONOCHROME,monochrome)
-vs.set(cv2.CAP_PROP_SHARPNESS,sharpness)
-vs.set(cv2.CAP_PROP_AUTO_EXPOSURE,autoexposure)
-vs.set(cv2.CAP_PROP_GAMMA,gamma)
-vs.set(cv2.CAP_PROP_ZOOM,zoom)
-vs.set(cv2.CAP_PROP_FOCUS,focus)
-vs.set(cv2.CAP_PROP_AUTOFOCUS,autofocus)
-
-
-print("video_fps: "+str(video_fps))
-print("height: "+str(height))
-print("width: "+str(width))
-
-if replaycam == 1:
-    if replaycamindex == webcamindex:
-        print("Replaycamindex must be different to webcam index")
-        replaycam = 0
+        saturation = vs.get(cv2.CAP_PROP_SATURATION)
+    if parser.has_option('putting', 'exposure'):
+        exposure=float(parser.get('putting', 'exposure'))
     else:
-
-        print("Replay Cam activated at "+str(replaycamindex))
-
-
-# replay is enabled start a 2nd video capture
-if replaycam == 1:
-    if mjpegenabled == 0:
-        vs2 = cv2.VideoCapture(replaycamindex)
+        exposure = vs.get(cv2.CAP_PROP_EXPOSURE)
+    if parser.has_option('putting', 'autowb'):
+        autowb=float(parser.get('putting', 'autowb'))
     else:
-        vs2 = cv2.VideoCapture(replaycamindex + cv2.CAP_DSHOW)
-        # Check if FPS is overwritten in config
-        if overwriteFPS != 0:
-            vs2.set(cv2.CAP_PROP_FPS, overwriteFPS)
-            print("Overwrite FPS: "+str(vs.get(cv2.CAP_PROP_FPS)))
-        if height != 0 and width != 0:
-            vs2.set(cv2.CAP_PROP_FRAME_WIDTH, width)
-            vs2.set(cv2.CAP_PROP_FRAME_HEIGHT, height)
-        mjpeg = cv2.VideoWriter_fourcc('M','J','P','G')
-        vs2.set(cv2.CAP_PROP_FOURCC, mjpeg)
-    if vs2.get(cv2.CAP_PROP_BACKEND) == -1:
-        message = "No Camera could be opened at webcamera index "+str(replaycamindex)+". If your webcam only supports compressed format MJPEG instead of YUY2 please set MJPEG option to 1"
+        autowb = vs.get(cv2.CAP_PROP_AUTO_WB)
+    if parser.has_option('putting', 'whiteBalanceBlue'):
+        whiteBalanceBlue=float(parser.get('putting', 'whiteBalanceBlue'))
     else:
-        if replaycamps4 == 1:
-            #cap.set(cv2.CAP_PROP_FRAME_WIDTH, 3448)
-            #cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 808)
-            vs2.set(cv2.CAP_PROP_FPS, 120)
-            vs2.set(cv2.CAP_PROP_FRAME_WIDTH, 1724)
-            vs2.set(cv2.CAP_PROP_FRAME_HEIGHT, 404)
-        print("Backend: "+str(vs.get(cv2.CAP_PROP_BACKEND)))
-        print("FourCC: "+str(vs.get(cv2.CAP_PROP_FOURCC)))
-        print("FPS: "+str(vs.get(cv2.CAP_PROP_FPS)))
-    replaycamheight = vs2.get(cv2.CAP_PROP_FRAME_HEIGHT)
-    replaycamwidth = vs2.get(cv2.CAP_PROP_FRAME_WIDTH)
-else:
-    print("Replay Cam not activated")
+        whiteBalanceBlue = vs.get(cv2.CAP_PROP_WHITE_BALANCE_BLUE_U)
+    if parser.has_option('putting', 'whiteBalanceRed'):
+        whiteBalanceRed=float(parser.get('putting', 'whiteBalanceRed'))
+    else:
+        whiteBalanceRed = vs.get(cv2.CAP_PROP_WHITE_BALANCE_RED_V)
+    if parser.has_option('putting', 'brightness'):
+        brightness=float(parser.get('putting', 'brightness'))
+    else:
+        brightness = vs.get(cv2.CAP_PROP_BRIGHTNESS)
+    if parser.has_option('putting', 'contrast'):
+        contrast=float(parser.get('putting', 'contrast'))
+    else:
+        contrast = vs.get(cv2.CAP_PROP_CONTRAST)
+    if parser.has_option('putting', 'hue'):
+        hue=float(parser.get('putting', 'hue'))
+    else:
+        hue = vs.get(cv2.CAP_PROP_HUE)
+    if parser.has_option('putting', 'gain'):
+        gain=float(parser.get('putting', 'gain'))
+    else:
+        gain = vs.get(cv2.CAP_PROP_HUE)
+    if parser.has_option('putting', 'monochrome'):
+        monochrome=float(parser.get('putting', 'monochrome'))
+    else:
+        monochrome = vs.get(cv2.CAP_PROP_MONOCHROME)
+    if parser.has_option('putting', 'sharpness'):
+        sharpness=float(parser.get('putting', 'sharpness'))
+    else:
+        sharpness = vs.get(cv2.CAP_PROP_SHARPNESS)
+    if parser.has_option('putting', 'autoexposure'):
+        autoexposure=float(parser.get('putting', 'autoexposure'))
+    else:
+        autoexposure = vs.get(cv2.CAP_PROP_AUTO_EXPOSURE)
+    if parser.has_option('putting', 'gamma'):
+        gamma=float(parser.get('putting', 'gamma'))
+    else:
+        gamma = vs.get(cv2.CAP_PROP_GAMMA)
+    if parser.has_option('putting', 'zoom'):
+        zoom=float(parser.get('putting', 'zoom'))
+    else:
+        zoom = vs.get(cv2.CAP_PROP_ZOOM)
+        gamma = vs.get(cv2.CAP_PROP_GAMMA)
+    if parser.has_option('putting', 'focus'):
+        focus=float(parser.get('putting', 'focus'))
+    else:
+        focus = vs.get(cv2.CAP_PROP_FOCUS)
+    if parser.has_option('putting', 'autofocus'):
+        autofocus=float(parser.get('putting', 'autofocus'))
+    else:
+        autofocus = vs.get(cv2.CAP_PROP_AUTOFOCUS)
+
+    vs.set(cv2.CAP_PROP_SATURATION,saturation)
+    vs.set(cv2.CAP_PROP_EXPOSURE,exposure)
+    vs.set(cv2.CAP_PROP_AUTO_WB,autowb)
+    vs.set(cv2.CAP_PROP_WHITE_BALANCE_BLUE_U,whiteBalanceBlue)
+    vs.set(cv2.CAP_PROP_WHITE_BALANCE_RED_V,whiteBalanceRed)
+    vs.set(cv2.CAP_PROP_BRIGHTNESS,brightness)
+    vs.set(cv2.CAP_PROP_CONTRAST,contrast)
+    vs.set(cv2.CAP_PROP_HUE,hue)
+    vs.set(cv2.CAP_PROP_GAIN,gain)
+    vs.set(cv2.CAP_PROP_MONOCHROME,monochrome)
+    vs.set(cv2.CAP_PROP_SHARPNESS,sharpness)
+    vs.set(cv2.CAP_PROP_AUTO_EXPOSURE,autoexposure)
+    vs.set(cv2.CAP_PROP_GAMMA,gamma)
+    vs.set(cv2.CAP_PROP_ZOOM,zoom)
+    vs.set(cv2.CAP_PROP_FOCUS,focus)
+    vs.set(cv2.CAP_PROP_AUTOFOCUS,autofocus)
+
+
+    print("video_fps: "+str(video_fps))
+    print("height: "+str(height))
+    print("width: "+str(width))
+
+    # if replaycam == 1:
+    #     if replaycamindex == webcamindex:
+    #         print("Replaycamindex must be different to webcam index")
+    #         replaycam = 0
+    #     else:
+
+    #         print("Replay Cam activated at "+str(replaycamindex))
+
+
+    # # replay is enabled start a 2nd video capture
+    # if replaycam == 1:
+    #     if mjpegenabled == 0:
+    #         vs2 = cv2.VideoCapture(replaycamindex)
+    #     else:
+    #         vs2 = cv2.VideoCapture(replaycamindex + cv2.CAP_DSHOW)
+    #         # Check if FPS is overwritten in config
+    #         if overwriteFPS != 0:
+    #             vs2.set(cv2.CAP_PROP_FPS, overwriteFPS)
+    #             print("Overwrite FPS: "+str(vs.get(cv2.CAP_PROP_FPS)))
+    #         if height != 0 and width != 0:
+    #             vs2.set(cv2.CAP_PROP_FRAME_WIDTH, width)
+    #             vs2.set(cv2.CAP_PROP_FRAME_HEIGHT, height)
+    #         mjpeg = cv2.VideoWriter_fourcc('M','J','P','G')
+    #         vs2.set(cv2.CAP_PROP_FOURCC, mjpeg)
+    #     if vs2.get(cv2.CAP_PROP_BACKEND) == -1:
+    #         message = "No Camera could be opened at webcamera index "+str(replaycamindex)+". If your webcam only supports compressed format MJPEG instead of YUY2 please set MJPEG option to 1"
+    #     else:
+    #         if replaycamps4 == 1:
+    #             #cap.set(cv2.CAP_PROP_FRAME_WIDTH, 3448)
+    #             #cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 808)
+    #             vs2.set(cv2.CAP_PROP_FPS, 120)
+    #             vs2.set(cv2.CAP_PROP_FRAME_WIDTH, 1724)
+    #             vs2.set(cv2.CAP_PROP_FRAME_HEIGHT, 404)
+    #         print("Backend: "+str(vs.get(cv2.CAP_PROP_BACKEND)))
+    #         print("FourCC: "+str(vs.get(cv2.CAP_PROP_FOURCC)))
+    #         print("FPS: "+str(vs.get(cv2.CAP_PROP_FPS)))
+    #     replaycamheight = vs2.get(cv2.CAP_PROP_FRAME_HEIGHT)
+    #     replaycamwidth = vs2.get(cv2.CAP_PROP_FRAME_WIDTH)
+    # else:
+    #     print("Replay Cam not activated")
 
 
 
-if type(video_fps) == float:
-    if video_fps == 0.0:
-        e = vs.set(cv2.CAP_PROP_FPS, 60)
-        new_fps = []
-        new_fps.append(0)
+    video_fps = SetVideoFPS(vs, video_fps)
 
-    if video_fps > 0.0:
-        new_fps = []
-        new_fps.append(video_fps)
-    video_fps = new_fps
+    # we are using x264 codec for mp4
+    fourcc = cv2.VideoWriter_fourcc(*'mp4v')
+    out2 = cv2.VideoWriter('Calibration.mp4', apiPreference=0, fourcc=fourcc,fps=120, frameSize=(int(width), int(height)))
 
+videoStarted=False
 
-# we are using x264 codec for mp4
-fourcc = cv2.VideoWriter_fourcc(*'mp4v')
-out2 = cv2.VideoWriter('Calibration.mp4', apiPreference=0, fourcc=fourcc,fps=120, frameSize=(int(width), int(height)))
-
-
-
-def decode(myframe):
-    left = np.zeros((400,632,3), np.uint8)
-    right = np.zeros((400,632,3), np.uint8)
-    
-    for i in range(400):
-        left[i] = myframe[i, 32: 640 + 24] 
-        right[i] = myframe[i, 640 + 24: 640 + 24 + 632] 
-    
-    return (left, right)
-
-def setFPS(value):
-    print(value)
-    vs.set(cv2.CAP_PROP_FPS,value)
-    pass 
-
-def setXStart(value):
-    print(value)
-    startcoord[0][0]=value
-    startcoord[2][0]=value
-
-    global sx1
-    sx1=int(value)    
-    parser.set('putting', 'startx1', str(sx1))
-    parser.write(open(CFG_FILE, "w"))
-    pass
-
-def setXEnd(value):
-    print(value)
-    startcoord[1][0]=value
-    startcoord[3][0]=value 
-
-    global x1
-    global x2
-    global sx2
-     
-    # Detection Gateway
-    x1=int(value+10)
-    x2=int(x1+10)
-
-    #coord=[[x1,y1],[x2,y1],[x1,y2],[x2,y2]]
-    coord[0][0]=x1
-    coord[2][0]=x1
-    coord[1][0]=x2
-    coord[3][0]=x2
-
-    sx2=int(value)    
-    parser.set('putting', 'startx2', str(sx2))
-    parser.write(open(CFG_FILE, "w"))
-    pass  
-
-def setYStart(value):
-    print(value)
-    startcoord[0][1]=value
-    startcoord[1][1]=value
-
-    global y1
-
-    #coord=[[x1,y1],[x2,y1],[x1,y2],[x2,y2]]
-    coord[0][1]=value   
-    coord[1][1]=value
-
-    y1=int(value)    
-    parser.set('putting', 'y1', str(y1))
-    parser.write(open(CFG_FILE, "w"))     
-    pass
-
-
-def setYEnd(value):
-    print(value)
-    startcoord[2][1]=value
-    startcoord[3][1]=value 
-
-    global y2
-
-    #coord=[[x1,y1],[x2,y1],[x1,y2],[x2,y2]]
-    coord[2][1]=value   
-    coord[3][1]=value
-
-    y2=int(value)    
-    parser.set('putting', 'y2', str(y2))
-    parser.write(open(CFG_FILE, "w"))     
-    pass 
-
-def setBallRadius(value):
-    print(value)    
-    global ballradius
-    ballradius = int(value)
-    parser.set('putting', 'radius', str(ballradius))
-    parser.write(open(CFG_FILE, "w"))
-    pass
-
-def setFlip(value):
-    print(value)    
-    global flipImage
-    flipImage = int(value)
-    parser.set('putting', 'flip', str(flipImage))
-    parser.write(open(CFG_FILE, "w"))
-    pass
-
-def setFlipView(value):
-    print(value)    
-    global flipView
-    flipView = int(value)
-    parser.set('putting', 'flipView', str(flipView))
-    parser.write(open(CFG_FILE, "w"))
-    pass
-
-def setMjpeg(value):
-    print(value)    
-    global mjpegenabled
-    global message
-    if mjpegenabled != int(value):
-        vs.release()
-        message = "Video Codec changed - Please restart the putting app"
-    mjpegenabled = int(value)
-    parser.set('putting', 'mjpeg', str(mjpegenabled))
-    parser.write(open(CFG_FILE, "w"))
-    pass
-
-def setOverwriteFPS(value):
-    print(value)    
-    global overwriteFPS
-    global message
-    if overwriteFPS != int(value):
-        vs.release()
-        message = "Overwrite of FPS changed - Please restart the putting app"
-    overwriteFPS = int(value)
-    parser.set('putting', 'fps', str(overwriteFPS))
-    parser.write(open(CFG_FILE, "w"))
-    pass
-
-def setDarkness(value):
-    print(value)    
-    global darkness
-    darkness = int(value)
-    parser.set('putting', 'darkness', str(darkness))
-    parser.write(open(CFG_FILE, "w"))
-    pass
-
-def GetAngle (p1, p2):
-    x1, y1 = p1
-    x2, y2 = p2
-    dX = x2 - x1
-    dY = y2 - y1
-    rads = math.atan2 (-dY, dX)
-
-    if flipImage == 1 and videofile == False:    	
-        rads = rads*-1
-    return math.degrees (rads)
-
-def rgb2yuv(rgb):
-    m = np.array([
-        [0.29900, -0.147108,  0.614777],
-        [0.58700, -0.288804, -0.514799],
-        [0.11400,  0.435912, -0.099978]
-    ])
-    yuv = np.dot(rgb, m)
-    yuv[:,:,1:] += 0.5
-    return yuv
-
-def yuv2rgb(yuv):
-    m = np.array([
-        [1.000,  1.000, 1.000],
-        [0.000, -0.394, 2.032],
-        [1.140, -0.581, 0.000],
-    ])
-    yuv[:, :, 1:] -= 0.5
-    rgb = np.dot(yuv, m)
-    return rgb
-
-# allow the camera or video file to warm up
-time.sleep(0.5)
-
-previousFrame = cv2.Mat
 
 while True:
     # set the frameTime
     frameTime = time.time()
     fpsqueue.append(frameTime)
+
+    # setup video after launch to avoid lag
+    secondsElapsed = frameTime - videoStartTime
+    
+    key = cv2.waitKey(1) & 0xFF
+    # if the 'q' key is pressed, stop the loop
+    if key == ord("q"):
+        break
+    
+    # delay the start of the webcam capture setup so that the initial setup frame is drawn first
+    # this makes the initial window appear to initialize way faster
+    if videoStarted == False:
+        videoStarted = True
+        print('Starting webcam')
+        startVideo()
     
     actualFPS = actualFPS + 1
     videoTimeDiff = fpsqueue[len(fpsqueue)-1] - fpsqueue[0]
@@ -740,7 +412,7 @@ while True:
         # get webcam frame
         ret, frame = vs.read()
         if ps4 == 1 and ret == True:
-            leftframe, rightframe = decode(frame)
+            leftframe, rightframe = Decode(frame)
             frame = leftframe[0:400,20:632]
             width = 612
             height = 400
@@ -748,7 +420,7 @@ while True:
         if replaycam == 1:
             ret2, origframe2 = vs2.read()
             if replaycamps4 == 1 and ret2 == True:
-                leftframe2, rightframe2 = decode(origframe2)
+                leftframe2, rightframe2 = Decode(origframe2)
                 origframe2 = leftframe2[0:400,20:632]
                 replaycamwidth = 612
                 replaycamheight = 400
@@ -782,7 +454,7 @@ while True:
                             cv2.putText(frame,str(calObject),(150,texty),cv2.FONT_HERSHEY_SIMPLEX,0.5,(0, 0, 255))
                         texty = texty+i
                         cv2.putText(frame,"Hit any key and choose color with the highest count.",(150,texty),cv2.FONT_HERSHEY_SIMPLEX,0.5,(0, 0, 255))
-                        cv2.imshow("Putting View: Press Q to exit / changing Ball Color", frame)
+                        cv2.imshow(windowName, frame)
                         cv2.waitKey(0)
                         # Show Results back to Connect App and set directly highest count - maybe also check for false Exit lowest value if 2 colors have equal hits
                         break
@@ -817,10 +489,10 @@ while True:
         # then we have reached the end of the video
         if frame is None:
             print("no frame")
-            frame = cv2.imread("error.png")
-            cv2.putText(frame,"Error: "+"No Frame",(20, 20),cv2.FONT_HERSHEY_SIMPLEX,0.5,(0, 0, 255))
-            cv2.putText(frame,"Message: "+message,(20, 40),cv2.FONT_HERSHEY_SIMPLEX,0.5,(0, 0, 255))
-            cv2.imshow("Putting View: Press q to exit / a for adv. settings", frame)
+            # frame = cv2.imread("error.png")
+            cv2.putText(blackFrame, "Error: No Frame",(20, 20),cv2.FONT_HERSHEY_SIMPLEX,0.5,(0, 0, 255))
+            cv2.putText(blackFrame, "Message: "+message,(20, 40),cv2.FONT_HERSHEY_SIMPLEX,0.5,(0, 0, 255))
+            cv2.imshow(windowName, blackFrame)
             cv2.waitKey(0)
             break
 
@@ -855,8 +527,6 @@ while True:
         parser.write(open(CFG_FILE, "w"))
         hsvVals = newHSV
         print("HSV values changed - Custom Color Set to config.ini")
-
-
 
     mask = mask[y1:y2, sx1:640]
 
@@ -1016,9 +686,9 @@ while True:
                             else:
                                 if ( x > coord[1][0] and entered == True and started == True):
                                     #calculate hla for circle and pts[0]
-                                    previousHLA = (GetAngle((startCircle[0],startCircle[1]),pts[0])*-1)
+                                    previousHLA = (GetAngle((flipImage, videofile, startCircle[0],startCircle[1]),pts[0])*-1)
                                     #calculate hla for circle and now
-                                    currentHLA = (GetAngle((startCircle[0],startCircle[1]),center)*-1)
+                                    currentHLA = (GetAngle((flipImage, videofile, startCircle[0],startCircle[1]),center)*-1)
                                     #check if HLA is inverted
                                     similarHLA = False
                                     if left == True:
@@ -1097,7 +767,7 @@ while True:
             #     totalSpin: ballData.TotalSpin,
             totalSpin = 0
             #     hla: ballData.LaunchDirection,
-            launchDirection = (GetAngle((startCircle[0],startCircle[1]),endPos)*-1)
+            launchDirection = (GetAngle((flipImage, videofile, startCircle[0],startCircle[1]),endPos)*-1)
             print("HLA: Line"+str((startCircle[0],startCircle[1]))+" Angle "+str(launchDirection))
             #Decimal(launchDirection);
             if (launchDirection > -40 and launchDirection < 40):
@@ -1307,7 +977,7 @@ while True:
     
     outputframe = resizeWithAspectRatio(frame, width=int(args["resize"]))
     
-    cv2.imshow("Putting View: Press q to exit / a for adv. settings", outputframe)
+    cv2.imshow(windowName, outputframe)
     
     
     #cv2.moveWindow("Putting View: Press q to exit / a for adv. settings", 20,20)
@@ -1328,10 +998,10 @@ while True:
     if replaycam == 1:
         cv2.imshow("Replay Camera", origframe2)
     
-    key = cv2.waitKey(1) & 0xFF
-    # if the 'q' key is pressed, stop the loop
-    if key == ord("q"):
-        break
+    # key = cv2.waitKey(1) & 0xFF
+    # # if the 'q' key is pressed, stop the loop
+    # if key == ord("q"):
+    #     break
     if key == ord("a"):
 
         if not a_key_pressed:
@@ -1423,7 +1093,9 @@ while True:
 
 
 # close all windows
-vs.release()
+if vs != None:
+    vs.release()
+
 if replaycam == 1:
     vs2.release()
 cv2.destroyAllWindows()
