@@ -46,6 +46,8 @@ else:
     os.mkdir('replay2')
 
 
+textColor = (255, 255, 255)
+
 ballradius = 0
 darkness = 0
 flipImage = 0
@@ -200,13 +202,15 @@ blackFrame = np.zeros((640, 480, 3), np.uint8)
 cv2.rectangle(blackFrame, (0, 0), (640, 480), (0, 0, 0), -1)
 
 outputFrame = resizeWithAspectRatio(blackFrame, width=int(args["resize"]))
-cv2.putText(blackFrame, "Starting Video: Try MJPEG option in advanced settings for faster startup", (20,100), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 255))
+# cv2.putText(blackFrame, "Starting Video", (20,200), cv2.FONT_HERSHEY_SIMPLEX, 0.9, textColor, 2)
+# cv2.putText(blackFrame, "Hint: Try MJPEG option in advanced settings for faster startup", (20,240), cv2.FONT_HERSHEY_SIMPLEX, 0.4, textColor, 2)
 
 cv2.imshow(windowName, outputFrame)
 
 if args.get("frameless", False):
-    cv2.setWindowProperty(windowName, cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN)
-    cv2.setWindowProperty(windowName, cv2.WND_PROP_TOPMOST, 1.0)
+    if (int(args["frameless"]) == 1):
+        cv2.setWindowProperty(windowName, cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN)
+        cv2.setWindowProperty(windowName, cv2.WND_PROP_TOPMOST, 1.0)
 
 (w, h) = outputFrame.shape[:2]
 cv2.resizeWindow(windowName, w, h)
@@ -393,7 +397,10 @@ while True:
         break
     
     # delay the start of the webcam capture setup so that the initial setup frame is drawn first
-    # this makes the initial window appear to initialize way faster
+    # this makes the initial window appear to initialize much faster
+    # if secondsElapsed < 1:
+    #     continue
+    
     if videoStarted == False:
         videoStarted = True
         print('Starting webcam')
@@ -446,14 +453,14 @@ while True:
                         if flipImage == 1 and videofile == False:    	
                             frame = cv2.flip(frame, flipImage)
                         print("Calibration Finished:"+str(calColorObjectCount))
-                        cv2.putText(frame,"Calibration Finished:",(150,100),cv2.FONT_HERSHEY_SIMPLEX,0.5,(0, 0, 255))
+                        cv2.putText(frame,"Calibration Finished:",(150,100),cv2.FONT_HERSHEY_SIMPLEX,0.5,textColor)
                         i = 20
                         texty = 100
                         for calObject in calColorObjectCount:
                             texty = texty+i
-                            cv2.putText(frame,str(calObject),(150,texty),cv2.FONT_HERSHEY_SIMPLEX,0.5,(0, 0, 255))
+                            cv2.putText(frame,str(calObject),(150,texty),cv2.FONT_HERSHEY_SIMPLEX,0.5,textColor)
                         texty = texty+i
-                        cv2.putText(frame,"Hit any key and choose color with the highest count.",(150,texty),cv2.FONT_HERSHEY_SIMPLEX,0.5,(0, 0, 255))
+                        cv2.putText(frame,"Hit any key and choose color with the highest count.",(150,texty),cv2.FONT_HERSHEY_SIMPLEX,0.5,textColor)
                         cv2.imshow(windowName, frame)
                         cv2.waitKey(0)
                         # Show Results back to Connect App and set directly highest count - maybe also check for false Exit lowest value if 2 colors have equal hits
@@ -469,7 +476,7 @@ while True:
                     hsvVals = calibrationcolor[colorcount][1]
                     if args.get("debug", False):
                         myColorFinder.setTrackbarValues(hsvVals)
-                    cv2.putText(frame,"Calibration Mode:"+str(calibrationcolor[colorcount][0]),(200,100),cv2.FONT_HERSHEY_SIMPLEX,0.5,(0, 0, 255))
+                    cv2.putText(frame,"Calibration Mode:"+str(calibrationcolor[colorcount][0]),(200,100),cv2.FONT_HERSHEY_SIMPLEX,0.5,textColor)
             else:
                 if (frameTime - calibrationtime) > calibrationTimeFrame:
                     record =  False
@@ -480,7 +487,7 @@ while True:
                     videofile = True
                     # grab the current frame
                     ret, frame = vs.read()
-                cv2.putText(frame,"Calibration Mode:",(200,100),cv2.FONT_HERSHEY_SIMPLEX,0.5,(0, 0, 255)) 
+                cv2.putText(frame,"Calibration Mode:",(200,100),cv2.FONT_HERSHEY_SIMPLEX,0.5,textColor) 
 
         # handle the frame from VideoCapture or VideoStream
         # frame = frame[1] if args.get("video", False) else frame
@@ -490,8 +497,8 @@ while True:
         if frame is None:
             print("no frame")
             # frame = cv2.imread("error.png")
-            cv2.putText(blackFrame, "Error: No Frame",(20, 20),cv2.FONT_HERSHEY_SIMPLEX,0.5,(0, 0, 255))
-            cv2.putText(blackFrame, "Message: "+message,(20, 40),cv2.FONT_HERSHEY_SIMPLEX,0.5,(0, 0, 255))
+            cv2.putText(blackFrame, "Error: No Frame",(20, 20),cv2.FONT_HERSHEY_SIMPLEX,0.5,textColor)
+            cv2.putText(blackFrame, "Message: "+message,(20, 40),cv2.FONT_HERSHEY_SIMPLEX,0.5,textColor)
             cv2.imshow(windowName, blackFrame)
             cv2.waitKey(0)
             break
@@ -560,10 +567,10 @@ while True:
 
     # Detection Gateway
 
-    cv2.line(frame, (coord[0][0], coord[0][1]), (coord[1][0], coord[1][1]), (0, 0, 255), 2)  # First horizontal line
-    cv2.line(frame, (coord[0][0], coord[0][1]), (coord[2][0], coord[2][1]), (0, 0, 255), 2)  # Vertical left line
-    cv2.line(frame, (coord[2][0], coord[2][1]), (coord[3][0], coord[3][1]), (0, 0, 255), 2)  # Second horizontal line
-    cv2.line(frame, (coord[1][0], coord[1][1]), (coord[3][0], coord[3][1]), (0, 0, 255), 2)  # Vertical right line
+    cv2.line(frame, (coord[0][0], coord[0][1]), (coord[1][0], coord[1][1]), (0, 105, 255), 2)  # First horizontal line
+    cv2.line(frame, (coord[0][0], coord[0][1]), (coord[2][0], coord[2][1]), (0, 105, 255), 2)  # Vertical left line
+    cv2.line(frame, (coord[2][0], coord[2][1]), (coord[3][0], coord[3][1]), (0, 105, 255), 2)  # Second horizontal line
+    cv2.line(frame, (coord[1][0], coord[1][1]), (coord[3][0], coord[3][1]), (0, 105, 255), 2)  # Vertical right line
 
     
     
@@ -588,7 +595,7 @@ while True:
             if (tempcentery >= y1 and tempcentery <= y2):
                 rangefactor = 50
                 cv2.drawContours(mask, cnts, index, (60, 255, 255), 1)
-                #cv2.putText(frame,"Radius:"+str(int(tempradius)),(int(tempcenterx)+3, int(tempcentery)),cv2.FONT_HERSHEY_SIMPLEX,0.5,(0, 0, 255))
+                #cv2.putText(frame,"Radius:"+str(int(tempradius)),(int(tempcenterx)+3, int(tempcentery)),cv2.FONT_HERSHEY_SIMPLEX,0.5,textColor)
                 # Eliminate countours significantly different than startCircle by comparing radius in range
                 if (started == True and startCircle[2]+rangefactor > tempradius and startCircle[2]-rangefactor < tempradius):
                     x = int(tempcenterx)
@@ -845,8 +852,8 @@ while True:
             pts.clear()
             tims.clear()
             
-    #cv2.putText(frame,"entered:"+str(entered),(20,180),cv2.FONT_HERSHEY_SIMPLEX,0.5,(0, 0, 255))
-    #cv2.putText(frame,"FPS:"+str(fps),(20,200),cv2.FONT_HERSHEY_SIMPLEX,0.5,(0, 0, 255))
+    #cv2.putText(frame,"entered:"+str(entered),(20,180),cv2.FONT_HERSHEY_SIMPLEX,0.5,textColor)
+    #cv2.putText(frame,"FPS:"+str(fps),(20,200),cv2.FONT_HERSHEY_SIMPLEX,0.5,textColor)
 
     if not lastShotSpeed == 0:
         cv2.line(frame,(lastShotStart),(lastShotEnd),(0, 255, 255),4,cv2.LINE_AA)      
@@ -874,25 +881,25 @@ while True:
     if flipView:	
        frame = cv2.flip(frame, -1)
                                     
-    cv2.putText(frame,"Start Ball",(20,20),cv2.FONT_HERSHEY_SIMPLEX,0.5,(0, 0, 255))
-    cv2.putText(frame,"x:"+str(startCircle[0]),(20,40),cv2.FONT_HERSHEY_SIMPLEX,0.5,(0, 0, 255))
-    cv2.putText(frame,"y:"+str(startCircle[1]),(20,60),cv2.FONT_HERSHEY_SIMPLEX,0.5,(0, 0, 255))
+    cv2.putText(frame,"Start Ball",(20,20),cv2.FONT_HERSHEY_SIMPLEX,0.5,textColor)
+    cv2.putText(frame,"x:"+str(startCircle[0]),(20,40),cv2.FONT_HERSHEY_SIMPLEX,0.5,textColor)
+    cv2.putText(frame,"y:"+str(startCircle[1]),(20,60),cv2.FONT_HERSHEY_SIMPLEX,0.5,textColor)
 
     if not lastShotSpeed == 0:
-        cv2.putText(frame,"Last Shot",(400,40),cv2.FONT_HERSHEY_SIMPLEX,0.5,(0, 0, 255),1)
-        cv2.putText(frame,"Ball Speed: %.2f" % lastShotSpeed+" MPH",(400,60),cv2.FONT_HERSHEY_SIMPLEX,0.5,(0, 0, 255),1)
-        cv2.putText(frame,"HLA:  %.2f" % lastShotHLA+" Degrees",(400,80),cv2.FONT_HERSHEY_SIMPLEX,0.5,(0, 0, 255),1)
+        cv2.putText(frame,"Last Shot",(400,40),cv2.FONT_HERSHEY_SIMPLEX,0.5,textColor,1)
+        cv2.putText(frame,"Ball Speed: %.2f" % lastShotSpeed+" MPH",(400,60),cv2.FONT_HERSHEY_SIMPLEX,0.5,textColor,1)
+        cv2.putText(frame,"HLA:  %.2f" % lastShotHLA+" Degrees",(400,80),cv2.FONT_HERSHEY_SIMPLEX,0.5,textColor,1)
     
     if ballradius == 0:
-        cv2.putText(frame,"radius:"+str(startCircle[2]),(20,80),cv2.FONT_HERSHEY_SIMPLEX,0.5,(0, 0, 255))
+        cv2.putText(frame,"radius:"+str(startCircle[2]),(20,80),cv2.FONT_HERSHEY_SIMPLEX,0.5,textColor)
     else:
-        cv2.putText(frame,"radius:"+str(startCircle[2])+" fixed at "+str(ballradius),(20,80),cv2.FONT_HERSHEY_SIMPLEX,0.5,(0, 0, 255))    
+        cv2.putText(frame,"radius:"+str(startCircle[2])+" fixed at "+str(ballradius),(20,80),cv2.FONT_HERSHEY_SIMPLEX,0.5,textColor)    
 
-    cv2.putText(frame,"Actual FPS: %.2f" % fps,(200,20),cv2.FONT_HERSHEY_SIMPLEX,0.5,(0, 0, 255))
+    cv2.putText(frame,"Actual FPS: %.2f" % fps,(200,20),cv2.FONT_HERSHEY_SIMPLEX,0.5,textColor)
     if overwriteFPS != 0:
-        cv2.putText(frame,"Fixed FPS: %.2f" % overwriteFPS,(400,20),cv2.FONT_HERSHEY_SIMPLEX,0.5,(0, 0, 255))
+        cv2.putText(frame,"Fixed FPS: %.2f" % overwriteFPS,(400,20),cv2.FONT_HERSHEY_SIMPLEX,0.5,textColor)
     else:
-        cv2.putText(frame,"Detected FPS: %.2f" % video_fps[0],(400,20),cv2.FONT_HERSHEY_SIMPLEX,0.5,(0, 0, 255))
+        cv2.putText(frame,"Detected FPS: %.2f" % video_fps[0],(400,20),cv2.FONT_HERSHEY_SIMPLEX,0.5,textColor)
     
     #if args.get("video", False):
     #    out1.write(frame)
