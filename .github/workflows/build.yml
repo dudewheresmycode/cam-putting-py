@@ -15,5 +15,5 @@ jobs:
           python_ver: '3.12.7'
           spec: 'ball_tracking.spec'
           requirements: 'requirements.txt'
-          upload_exe_with_name: "PuttTracker_${{ env.SHORT_SHA }}.zip"
-          options: --name "Putt Tracker",
+          upload_exe_with_name: "PuttTracker_${{ env.SHORT_SHA }}"
+          options: --name "Putt Tracker", --windowed,
