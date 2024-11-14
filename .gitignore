@@ -6,3 +6,4 @@ dist
 readme-priv.md
 .vscode
 venv
+__pycache__
