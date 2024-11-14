@@ -317,10 +317,21 @@ def resizeWithAspectRatio(image, width=None, height=None, inter=cv2.INTER_AREA):
     return cv2.resize(image, dim, interpolation=inter)
 
 
+
+def resource_path(relative_path):
+    """ Get absolute path to resource, works for dev and for PyInstaller """
+    try:
+        # PyInstaller creates a temp folder and stores path in _MEIPASS
+        base_path = sys._MEIPASS
+    except Exception:
+        base_path = os.path.abspath(".")
+
+    return os.path.join(base_path, relative_path)
+
 # Start Splash Screen
 
-frame = cv2.imread("images/error.png")
-origframe2 = cv2.imread("images/error.png")
+frame = cv2.imread(resource_path("images/error.png"))
+origframe2 = cv2.imread(resource_path("images/error.png"))
 cv2.putText(frame,"Starting Video: Try MJPEG option in advanced settings for faster startup",(20,100),cv2.FONT_HERSHEY_SIMPLEX,0.5,(0, 0, 255))
 outputframe = resizeWithAspectRatio(frame, width=int(args["resize"]))
 cv2.imshow("Putting View: Press q to exit / a for adv. settings", outputframe)
