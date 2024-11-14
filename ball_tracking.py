@@ -225,6 +225,13 @@ ap.add_argument("-d", "--debug",
                 help="debug - color finder and wait timer")
 ap.add_argument("-r", "--resize", type=int, default=640,
                 help="window resize in width pixel - default is 640px")
+ap.add_argument("-p", "--position",
+                  help="comma separated window position (x,y) (e.g. -p 40,200)")
+ap.add_argument("-y", "--ypos", type=int, default=40,
+                help="window y position (in pixels) - default is 40px")
+ap.add_argument("-f", "--frameless",
+                help="Use a frameless, always-on-top window")
+
 args = vars(ap.parse_args())
 
 # define the lower and upper boundaries of the different ball color options (-c)
@@ -328,13 +335,33 @@ def resource_path(relative_path):
 
     return os.path.join(base_path, relative_path)
 
-# Start Splash Screen
 
+# Create the main window
+windowName = "Putting View: Press q to exit / a for adv. settings"
+cv2.namedWindow(windowName, cv2.WINDOW_NORMAL)
+
+# Start Splash Screen
 frame = cv2.imread(resource_path("images/error.png"))
 origframe2 = cv2.imread(resource_path("images/error.png"))
 cv2.putText(frame,"Starting Video: Try MJPEG option in advanced settings for faster startup",(20,100),cv2.FONT_HERSHEY_SIMPLEX,0.5,(0, 0, 255))
 outputframe = resizeWithAspectRatio(frame, width=int(args["resize"]))
-cv2.imshow("Putting View: Press q to exit / a for adv. settings", outputframe)
+
+if args.get("frameless", False):
+    # creates a fullscreen (frameless) window and then resize it to the image size
+    cv2.setWindowProperty(windowName, cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN)
+    cv2.setWindowProperty(windowName, cv2.WND_PROP_TOPMOST, 1.0)
+    (h, w) = outputframe.shape[:2]
+    cv2.resizeWindow(windowName, w, h)
+
+if args.get("position", False):
+    pos = args["position"].split(",")
+    if (len(pos) != 2):
+        print("Invalid x,y position!")
+    xpos = int(pos[0].strip())
+    ypos = int(pos[1].strip())
+    cv2.moveWindow(windowName, xpos, ypos)
+
+cv2.imshow(windowName, outputframe)
 
 # Create the color Finder object set to True if you need to Find the color
 
@@ -820,7 +847,7 @@ while True:
             frame = cv2.imread("error.png")
             cv2.putText(frame,"Error: "+"No Frame",(20, 20),cv2.FONT_HERSHEY_SIMPLEX,0.5,(0, 0, 255))
             cv2.putText(frame,"Message: "+message,(20, 40),cv2.FONT_HERSHEY_SIMPLEX,0.5,(0, 0, 255))
-            cv2.imshow("Putting View: Press q to exit / a for adv. settings", frame)
+            cv2.imshow(windowName, frame)
             cv2.waitKey(0)
             break
 
@@ -1307,7 +1334,7 @@ while True:
     
     outputframe = resizeWithAspectRatio(frame, width=int(args["resize"]))
     
-    cv2.imshow("Putting View: Press q to exit / a for adv. settings", outputframe)
+    cv2.imshow(windowName, outputframe)
     
     
     #cv2.moveWindow("Putting View: Press q to exit / a for adv. settings", 20,20)

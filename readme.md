@@ -163,6 +163,10 @@ options:
   -c BALLCOLOR, --ballcolor   ball color - default is white
 
   -d DEBUG, --debug DEBUG     debug - color finder and wait timer
+  
+  -f, --frameless             frameless - use a frameless, always-on-top window (no titlebar)
+
+  -p X,Y, --position X,Y      position - the window x,y position
 ```
 
 ### Average Putting Distances
