@@ -5,11 +5,15 @@ jobs:
   pyinstaller-build:
     runs-on: windows-latest
     steps:
+      - name: Get short SHA
+        run: echo "SHORT_SHA=$("${{ github.sha }}".SubString(0, 8))" >> $env:GITHUB_ENV
+      - name: Print short SHA
+        run: echo "Building for commit ${{ env.SHORT_SHA }}"
       - name: Create Executable
         uses: sayyid5416/pyinstaller@v1
         with:
           python_ver: '3.12.7'
           spec: 'ball_tracking.spec'
           requirements: 'requirements.txt'
-          upload_exe_with_name: 'PuttTracker.exe'
-          options: --onefile, --name "Putt Tracker", --windowed, 
+          upload_exe_with_name: "PuttTracker_${{ env.SHORT_SHA }}.exe"
+          options: --name "Putt Tracker"
