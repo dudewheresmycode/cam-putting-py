@@ -8,7 +8,7 @@ a = Analysis(
     ['ball_tracking.py'],
     pathex=[],
     binaries=[],
-    datas=[],
+    datas=[('images/error.png', 'images')],
     hiddenimports=[],
     hookspath=[],
     hooksconfig={},
