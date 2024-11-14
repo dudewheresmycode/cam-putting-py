@@ -16,10 +16,7 @@ import ast
 import os
 import shutil
 
-parser = ConfigParser()
 CFG_FILE = 'config.ini'
-
-parser.read(CFG_FILE)
 
 ## Check for folder replay1 and replay2 and empty if necessary
 
@@ -44,6 +41,34 @@ else:
     os.mkdir('replay2')
 
 
+
+# construct the argument parse and parse the arguments
+ap = argparse.ArgumentParser()
+ap.add_argument("-v", "--video",
+                help="path to the (optional) video file")
+ap.add_argument("-i", "--img",
+                help="path to the (optional) image file")
+ap.add_argument("-b", "--buffer", type=int, default=64,
+                help="max buffer size - default is 64")
+ap.add_argument("-w", "--camera", type=int, default=0,
+                help="webcam index number - default is 0")
+ap.add_argument("-c", "--ballcolor",
+                help="ball color - default is yellow")
+ap.add_argument("-d", "--debug",
+                help="debug - color finder and wait timer")
+ap.add_argument("-r", "--resize", type=int, default=640,
+                help="window resize in width pixel - default is 640px")
+ap.add_argument("-p", "--position",
+                  help="comma separated window position (x,y) (e.g. -p 40,200)")
+ap.add_argument("-g", "--config",
+                  help="Supply the path to a specific config.ini file")
+ap.add_argument("-y", "--ypos", type=int, default=40,
+                help="window y position (in pixels) - default is 40px")
+ap.add_argument("-f", "--frameless",
+                help="Use a frameless, always-on-top window")
+
+args = vars(ap.parse_args())
+
 # Startpoint Zone
 
 ballradius = 0
@@ -65,6 +90,11 @@ replayavail = False
 frameskip = 0
 
 
+if args.get("config", False):
+    CFG_FILE = args["config"]
+
+parser = ConfigParser()
+parser.read(CFG_FILE)
 
 if parser.has_option('putting', 'startx1'):
     sx1=int(parser.get('putting', 'startx1'))
@@ -209,30 +239,6 @@ a_key_pressed = False
 d_key_pressed = False 
 
 
-# construct the argument parse and parse the arguments
-ap = argparse.ArgumentParser()
-ap.add_argument("-v", "--video",
-                help="path to the (optional) video file")
-ap.add_argument("-i", "--img",
-                help="path to the (optional) image file")
-ap.add_argument("-b", "--buffer", type=int, default=64,
-                help="max buffer size - default is 64")
-ap.add_argument("-w", "--camera", type=int, default=0,
-                help="webcam index number - default is 0")
-ap.add_argument("-c", "--ballcolor",
-                help="ball color - default is yellow")
-ap.add_argument("-d", "--debug",
-                help="debug - color finder and wait timer")
-ap.add_argument("-r", "--resize", type=int, default=640,
-                help="window resize in width pixel - default is 640px")
-ap.add_argument("-p", "--position",
-                  help="comma separated window position (x,y) (e.g. -p 40,200)")
-ap.add_argument("-y", "--ypos", type=int, default=40,
-                help="window y position (in pixels) - default is 40px")
-ap.add_argument("-f", "--frameless",
-                help="Use a frameless, always-on-top window")
-
-args = vars(ap.parse_args())
 
 # define the lower and upper boundaries of the different ball color options (-c)
 # ball in the HSV color space, then initialize the
