@@ -62,10 +62,10 @@ ap.add_argument("-p", "--position",
                   help="comma separated window position (x,y) (e.g. -p 40,200)")
 ap.add_argument("-g", "--config",
                   help="Supply the path to a specific config.ini file")
-ap.add_argument("-y", "--ypos", type=int, default=40,
-                help="window y position (in pixels) - default is 40px")
 ap.add_argument("-f", "--frameless",
                 help="Use a frameless, always-on-top window")
+ap.add_argument("-z", "--zoom",
+                help="Crop the webcam image to the specified coordinates (x,y,width,height) (e.g. -z 100,100,640,480)")
 
 args = vars(ap.parse_args())
 
@@ -329,7 +329,21 @@ def resizeWithAspectRatio(image, width=None, height=None, inter=cv2.INTER_AREA):
 
     return cv2.resize(image, dim, interpolation=inter)
 
-
+def zoomCropImage(frame):
+    # crop/zoom image
+    # cy = 90
+    # cx = 200
+    # cw = 400
+    # ch = 300
+    pos = args["zoom"].split(",")
+    if (len(pos) != 4):
+        print("Invalid zoom position!")
+    cy = int(pos[0].strip())
+    cx = int(pos[1].strip())
+    cw = int(pos[2].strip())
+    ch = int(pos[3].strip())
+    cropped = frame[cy:cy+ch, cx:cx+cw]
+    return imutils.resize(cropped, width=640, height=480)    
 
 def resource_path(relative_path):
     """ Get absolute path to resource, works for dev and for PyInstaller """
@@ -789,6 +803,9 @@ while True:
         if flipImage == 1 and videofile == False:	
             frame = cv2.flip(frame, flipImage)
         
+        if args.get("zoom"):
+            frame = zoomCropImage(frame)
+
         if args["ballcolor"] == "calibrate":
             if record == False:
                 if args.get("debug", False):
