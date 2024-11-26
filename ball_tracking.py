@@ -876,7 +876,6 @@ while True:
 
     origframe = frame.copy()
     
-    
     cv2.normalize(frame, frame, 0-darkness, 255-darkness, norm_type=cv2.NORM_MINMAX)
        
     # cropping needed for video files as they are too big
