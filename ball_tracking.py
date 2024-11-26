@@ -803,7 +803,7 @@ while True:
         if flipImage == 1 and videofile == False:	
             frame = cv2.flip(frame, flipImage)
         
-        if args.get("zoom"):
+        if args.get("zoom", False):
             frame = zoomCropImage(frame)
 
         if args["ballcolor"] == "calibrate":
